@@ -6,23 +6,32 @@
     <!-- Название должно строго совпадать с черновиком -->
     <title>Эволюция Мемов: 2048</title>
     
-    <!-- Подключение иконки (файл icon.png должен лежать в той же папке на GitHub) -->
+    <!-- Подключение иконки -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
+    
+    <!-- Подключение мягкого казуального шрифта Nunito -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Yandex Games SDK -->
     <script async src="https://yandex.ru/games/sdk/v2"></script>
 
     <style>
         :root {
-            --bg-color: #faf8ef;
-            --text-color: #776e65;
-            --board-bg: #bbada0;
-            --cell-bg: rgba(238, 228, 218, 0.35);
-            --modal-bg: rgba(250, 248, 239, 0.9);
-            --btn-bg: #8f7a66;
-            --btn-text: #f9f6f2;
-            --score-bg: #bbada0;
+            /* Новая пастельная, уютная палитра */
+            --bg-top: #fff0f0;
+            --bg-bottom: #ffe8cc;
+            --text-color: #6d5242; /* Мягкий шоколадный цвет текста */
+            --board-bg: #f4d6c4; /* Теплый фон доски */
+            --cell-bg: rgba(255, 255, 255, 0.45);
+            --modal-bg: rgba(255, 246, 235, 0.95);
+            --btn-bg: #ff9d72; /* Сочная пастельная кнопка */
+            --btn-bg-hover: #ff8552;
+            --btn-shadow: #d86c43;
+            --btn-text: #ffffff;
+            --score-bg: #ffb58e;
             
             --spacing: 2%;
             --cell-size: 22.5%;
@@ -39,28 +48,34 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: var(--bg-color);
+            background: linear-gradient(135deg, var(--bg-top), var(--bg-bottom));
             color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Nunito', sans-serif; /* Применяем новый шрифт */
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden; /* Скрываем боди, скролл будет внутри app */
+            overflow: hidden;
             touch-action: none;
         }
 
         #app {
             width: 100%;
             max-width: 500px;
-            /* Исправление п. 1.10.3 (Наложение элементов): используем dvh и разрешаем скролл */
             height: 100vh;
             height: 100dvh;
             display: flex;
             flex-direction: column;
             padding: max(20px, 3vh) 20px;
             position: relative;
-            overflow-y: auto; /* Защита от наложения на маленьких экранах */
+            overflow-y: auto;
             overflow-x: hidden;
+            
+            /* Скрываем ползунок прокрутки для красоты (как на мобилках) */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+        #app::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
         }
 
         /* Шапка */
@@ -70,7 +85,6 @@
             align-items: center;
             margin-bottom: 3vh;
             flex-shrink: 0;
-            flex-wrap: wrap; /* Защита от слипания текста и счета */
             gap: 15px;
         }
 
@@ -78,20 +92,21 @@
             display: flex;
             flex-direction: column;
             flex: 1;
-            min-width: 150px;
         }
 
         h1 {
-            /* Строгое соответствие имени */
-            font-size: clamp(1.4rem, 5vw, 1.8rem);
+            font-size: clamp(1.4rem, 5vw, 2rem);
             margin: 0;
-            line-height: 1.2;
-            font-weight: 800;
+            line-height: 1.1;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.7);
         }
 
         .subtitle {
-            font-size: 0.9rem;
-            opacity: 0.8;
+            font-size: 1rem;
+            font-weight: 700;
+            opacity: 0.85;
             margin-top: 5px;
         }
 
@@ -102,30 +117,45 @@
 
         .score-box {
             background-color: var(--score-bg);
-            padding: 5px 15px;
-            border-radius: 8px;
+            padding: 6px 16px;
+            border-radius: 12px;
             color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-width: 70px;
-            position: relative; /* Для анимации счета */
+            min-width: 75px;
+            position: relative;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.05), inset 0 2px 0 rgba(255,255,255,0.3);
         }
 
         .score-label {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            color: #eee4da;
-            font-weight: bold;
+            color: #fff6ee;
+            font-weight: 800;
             text-align: center;
+            letter-spacing: 0.5px;
         }
 
         .score-value {
-            font-size: 1.2rem;
-            font-weight: bold;
+            font-size: 1.3rem;
+            font-weight: 900;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
-        /* Обертка для доски (центровка + предотвращение растягивания) */
+        /* Адаптив шапки: если экран узкий, складываем друг под друга */
+        @media (max-width: 420px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            .title-group {
+                align-items: center;
+            }
+        }
+
+        /* Обертка для доски */
         .board-wrapper {
             width: 100%;
             display: flex;
@@ -139,15 +169,16 @@
         #game-board-container {
             position: relative;
             background-color: var(--board-bg);
-            border-radius: 12px;
+            border-radius: 16px; /* Более округлые углы */
             width: 100%;
             max-width: 450px;
             aspect-ratio: 1 / 1;
             padding: var(--spacing);
             touch-action: none;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.06);
+            border: 3px solid rgba(255,255,255,0.4);
         }
 
-        /* Эффект ошибки (вздрагивание доски) */
         @keyframes shake-board {
             0%, 100% { transform: translateX(0); }
             20%, 60% { transform: translateX(-5px); }
@@ -168,9 +199,10 @@
 
         .cell-bg {
             background-color: var(--cell-bg);
-            border-radius: 8px;
+            border-radius: 12px;
             width: 100%;
             height: 100%;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
         }
 
         #tiles-layer {
@@ -186,19 +218,23 @@
             position: absolute;
             width: var(--cell-size);
             height: var(--cell-size);
-            border-radius: 8px;
+            border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2.5rem;
+            font-size: 2.6rem;
             transition: transform 0.15s ease-in-out, top 0.15s ease-in-out, left 0.15s ease-in-out, background-color 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            
+            /* 3D эффект плитки (блик сверху, тень снизу) */
+            box-shadow: 0 5px 0 rgba(0,0,0,0.08), 
+                        0 6px 8px rgba(0,0,0,0.1),
+                        inset 0 3px 0 rgba(255,255,255,0.4);
+            border: 1px solid rgba(255,255,255,0.5);
             z-index: 10;
         }
 
-        /* Анимации тайлов */
         .tile-new {
-            animation: appear 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation: appear 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             transform: scale(0);
         }
 
@@ -208,33 +244,34 @@
         }
 
         .tile-merged {
-            animation: pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         @keyframes pop {
             0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+            50% { transform: scale(1.15); }
             100% { transform: scale(1); }
         }
 
-        /* Эпичные мемы: дыхание и свечение */
         @keyframes breathe {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.04); }
         }
         .tile-epic {
             animation: breathe 2.5s infinite ease-in-out;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.4);
+            box-shadow: 0 5px 0 rgba(0,0,0,0.1), 
+                        0 0 15px rgba(255, 215, 0, 0.6), 
+                        inset 0 3px 0 rgba(255, 255, 255, 0.6);
             z-index: 15;
+            border: 2px solid rgba(255, 215, 0, 0.5);
         }
 
-        /* Всплывающие очки на доске */
         .floating-score {
             position: absolute;
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 900;
             color: #fff;
-            text-shadow: 0px 2px 4px rgba(0,0,0,0.4);
+            text-shadow: 0px 3px 0px var(--btn-shadow), 0 4px 8px rgba(0,0,0,0.2);
             pointer-events: none;
             z-index: 50;
             animation: float-up 0.8s ease-out forwards;
@@ -247,17 +284,18 @@
 
         @keyframes float-up {
             0% { opacity: 1; transform: translateY(0) scale(0.8); }
-            100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
         }
 
         /* Модальные окна */
         .modal-overlay {
-            position: fixed; /* Фиксируем окно поверх всего (решает проблемы с overflow-y) */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
             background: var(--modal-bg);
+            backdrop-filter: blur(5px);
             display: none; 
             flex-direction: column;
             justify-content: center;
@@ -276,47 +314,62 @@
         }
 
         .modal-title {
-            font-size: clamp(2rem, 8vw, 3rem);
-            font-weight: bold;
-            color: #776e65;
+            font-size: clamp(2.5rem, 8vw, 3.5rem);
+            font-weight: 900;
+            color: var(--text-color);
             margin-bottom: 20px;
             text-align: center;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.8);
         }
 
         .modal-score {
-            font-size: 1.5rem;
-            margin-bottom: 30px;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 40px;
+            color: var(--btn-bg-hover);
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
         }
 
         .btn {
             background-color: var(--btn-bg);
             color: var(--btn-text);
             border: none;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 8px;
+            padding: 16px 36px;
+            font-size: 1.4rem;
+            font-weight: 900;
+            border-radius: 16px;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 6px 0 var(--btn-shadow), 0 10px 15px rgba(0,0,0,0.1);
+            transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+            font-family: 'Nunito', sans-serif;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
-        .btn:hover { background-color: #7f6a59; }
-        .btn:active { transform: scale(0.95); }
+        .btn:hover { 
+            background-color: var(--btn-bg-hover); 
+        }
+        
+        .btn:active { 
+            transform: translateY(6px); 
+            box-shadow: 0 0px 0 var(--btn-shadow), 0 2px 5px rgba(0,0,0,0.1);
+        }
 
         /* Подвал */
         footer {
             margin-top: auto;
             text-align: center;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            font-weight: 700;
             opacity: 0.7;
             padding-top: 20px;
             flex-shrink: 0;
+            padding-bottom: 10px;
         }
 
         @media (max-width: 400px) {
-            .tile { font-size: 2rem; }
-            .score-box { min-width: 60px; padding: 5px 10px; }
-            .floating-score { font-size: 1.5rem; }
+            .tile { font-size: 2.2rem; }
+            .score-box { min-width: 60px; padding: 5px 12px; }
+            .floating-score { font-size: 1.6rem; }
         }
     </style>
 </head>
@@ -357,7 +410,7 @@
     </footer>
 </div>
 
-<!-- Модальное окно (вынесено из app для позиционирования поверх всего экрана) -->
+<!-- Модальное окно -->
 <div id="game-over-modal" class="modal-overlay">
     <div class="modal-title" id="ui-game-over">Игра окончена!</div>
     <div class="modal-score"><span id="ui-points">Очки: </span><span id="final-score">0</span></div>
@@ -365,14 +418,14 @@
 </div>
 
 <script>
-    // --- ЛОКАЛИЗАЦИЯ (Решение п. 2.14 требований) ---
+    // --- ЛОКАЛИЗАЦИЯ ---
     const dict = {
         'ru': {
             title: "Эволюция Мемов: 2048",
             subtitle: "Собери Дракона! 🐲",
             score: "СЧЕТ",
             best: "ЛУЧШИЙ",
-            footer: "Свайпай на экране или используй стрелки клавиатуры для объединения одинаковых мемов.",
+            footer: "Свайпай на экране или используй стрелки клавиатуры для объединения.",
             gameOver: "Игра окончена!",
             points: "Очки: ",
             restart: "Играть снова"
@@ -389,7 +442,7 @@
         }
     };
 
-    let currentLang = 'ru'; // По умолчанию
+    let currentLang = 'ru'; 
 
     function applyTranslations() {
         const langData = dict[currentLang] || dict['ru'];
@@ -407,9 +460,11 @@
 
     // --- КОНСТАНТЫ И НАСТРОЙКИ ---
     const EMOJIS = ['🥚', '🐥', '🐔', '🐱', '🐶', '🦊', '🐻', '🦁', '🐯', '🦄', '🐲'];
+    
+    // Новая палитра: Сочные, светлые пастельные цвета (от кремового до фиолетового)
     const COLORS = [
-        '#eee4da', '#ede0c8', '#f2b179', '#f59563', '#f67c5f', 
-        '#f65e3b', '#edcf72', '#edcc61', '#edc850', '#edc53f', '#edc22e'
+        '#fff7e6', '#ffe8cc', '#ffd8a8', '#ffc078', '#ffa94d', 
+        '#ff922b', '#ff784e', '#ff5a5a', '#ff4d88', '#e56ee6', '#b197fc'
     ];
     
     // --- СОСТОЯНИЕ ИГРЫ ---
@@ -434,13 +489,12 @@
         YaGames.init().then(_ysdk => {
             ysdk = _ysdk;
             
-            // Синхронизация и применение языка от платформы
             if (ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang) {
                 let envLang = ysdk.environment.i18n.lang;
                 if(dict[envLang]) {
                     currentLang = envLang;
                 } else {
-                    currentLang = 'en'; // Резервный английский для международных игроков
+                    currentLang = 'en'; 
                 }
                 applyTranslations();
             }
@@ -462,7 +516,7 @@
             }
         }).catch(err => {
             console.warn("Yandex SDK работает в автономном режиме");
-            applyTranslations(); // Применяем дефолтный язык в автономе
+            applyTranslations(); 
         });
     }
     
@@ -479,7 +533,6 @@
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             
-            // Динамический звук: чем выше уровень, тем интереснее и звонче звук
             let baseFreq = 200 + (level * 30);
             let endFreq = baseFreq * 2;
             
@@ -487,7 +540,6 @@
             osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + 0.1);
             
-            // Громкость
             gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
             
@@ -567,7 +619,6 @@
         el.innerText = EMOJIS[index];
         el.style.backgroundColor = COLORS[Math.min(level - 1, COLORS.length - 1)];
         
-        // Эпические мемы получают анимацию "дыхания" и свечение
         if (level >= 7) {
             el.classList.add('tile-epic');
         } else {
@@ -586,7 +637,6 @@
         
         document.getElementById('tiles-layer').appendChild(el);
         
-        // Удаляем после завершения анимации
         setTimeout(() => el.remove(), 800);
     }
 
@@ -656,14 +706,13 @@
                             addScore(pointsEarned);
                             applyTileStyle(targetTile.el, targetTile.level);
                             
-                            // Запускаем эффект очков
                             spawnFloatingScore(nx, ny, pointsEarned);
                             
                             targetTile.el.classList.remove('tile-merged');
                             void targetTile.el.offsetWidth; 
                             targetTile.el.classList.add('tile-merged');
                             
-                            playPopSound(targetTile.level); // Звук зависит от уровня
+                            playPopSound(targetTile.level);
                         }, 150);
                         moved = true;
                     } 
@@ -690,10 +739,9 @@
             }, 160);
         } else {
             isMoving = false;
-            // Анимация ошибки (вздрагивание), если ход не привел к изменениям
             const boardContainerEl = document.getElementById('game-board-container');
             boardContainerEl.classList.remove('shake');
-            void boardContainerEl.offsetWidth; // Trigger reflow
+            void boardContainerEl.offsetWidth; 
             boardContainerEl.classList.add('shake');
             setTimeout(() => boardContainerEl.classList.remove('shake'), 300);
         }
