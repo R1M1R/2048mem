@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Название должно строго совпадать с черновиком -->
+    <title>Эволюция Мемов: 2048</title>
+    
+    <!-- Подключение иконки (файл icon.png должен лежать в той же папке на GitHub) -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <!-- Yandex Games SDK -->
+    <script async src="https://yandex.ru/games/sdk/v2"></script>
+
+    <style>
+        :root {
+            --bg-color: #faf8ef;
+            --text-color: #776e65;
+            --board-bg: #bbada0;
+            --cell-bg: rgba(238, 228, 218, 0.35);
+            --modal-bg: rgba(250, 248, 239, 0.9);
+            --btn-bg: #8f7a66;
+            --btn-text: #f9f6f2;
+            --score-bg: #bbada0;
+            
+            --spacing: 2%;
+            --cell-size: 22.5%;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Скрываем боди, скролл будет внутри app */
+            touch-action: none;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 500px;
+            /* Исправление п. 1.10.3 (Наложение элементов): используем dvh и разрешаем скролл */
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: max(20px, 3vh) 20px;
+            position: relative;
+            overflow-y: auto; /* Защита от наложения на маленьких экранах */
+            overflow-x: hidden;
+        }
+
+        /* Шапка */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3vh;
+            flex-shrink: 0;
+            flex-wrap: wrap; /* Защита от слипания текста и счета */
+            gap: 15px;
+        }
+
+        .title-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        h1 {
+            /* Строгое соответствие имени */
+            font-size: clamp(1.4rem, 5vw, 1.8rem);
+            margin: 0;
+            line-height: 1.2;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .scores-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .score-box {
+            background-color: var(--score-bg);
+            padding: 5px 15px;
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+            position: relative; /* Для анимации счета */
+        }
+
+        .score-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #eee4da;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Обертка для доски (центровка + предотвращение растягивания) */
+        .board-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            margin: 0 auto;
+        }
+
+        /* Игровое поле */
+        #game-board-container {
+            position: relative;
+            background-color: var(--board-bg);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1 / 1;
+            padding: var(--spacing);
+            touch-action: none;
+        }
+
+        /* Эффект ошибки (вздрагивание доски) */
+        @keyframes shake-board {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake-board 0.3s ease-in-out;
+        }
+
+        .grid-bg {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2.66%; 
+            width: 100%;
+            height: 100%;
+        }
+
+        .cell-bg {
+            background-color: var(--cell-bg);
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+        }
+
+        #tiles-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .tile {
+            position: absolute;
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            transition: transform 0.15s ease-in-out, top 0.15s ease-in-out, left 0.15s ease-in-out, background-color 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        /* Анимации тайлов */
+        .tile-new {
+            animation: appear 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            transform: scale(0);
+        }
+
+        @keyframes appear {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .tile-merged {
+            animation: pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Эпичные мемы: дыхание и свечение */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+        .tile-epic {
+            animation: breathe 2.5s infinite ease-in-out;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.4);
+            z-index: 15;
+        }
+
+        /* Всплывающие очки на доске */
+        .floating-score {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.4);
+            pointer-events: none;
+            z-index: 50;
+            animation: float-up 0.8s ease-out forwards;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: var(--cell-size);
+            height: var(--cell-size);
+        }
+
+        @keyframes float-up {
+            0% { opacity: 1; transform: translateY(0) scale(0.8); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+        }
+
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed; /* Фиксируем окно поверх всего (решает проблемы с overflow-y) */
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--modal-bg);
+            display: none; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fade-in 0.5s ease;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-title {
+            font-size: clamp(2rem, 8vw, 3rem);
+            font-weight: bold;
+            color: #776e65;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-score {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn:hover { background-color: #7f6a59; }
+        .btn:active { transform: scale(0.95); }
+
+        /* Подвал */
+        footer {
+            margin-top: auto;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            padding-top: 20px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 400px) {
+            .tile { font-size: 2rem; }
+            .score-box { min-width: 60px; padding: 5px 10px; }
+            .floating-score { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <div class="title-group">
+            <h1 id="ui-title">Эволюция Мемов: 2048</h1>
+            <div class="subtitle" id="ui-subtitle">Собери Дракона! 🐲</div>
+        </div>
+        <div class="scores-container">
+            <div class="score-box" id="score-box-container">
+                <span class="score-label" id="ui-score">Счет</span>
+                <span class="score-value" id="current-score">0</span>
+            </div>
+            <div class="score-box">
+                <span class="score-label" id="ui-best">Лучший</span>
+                <span class="score-value" id="best-score">0</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="board-wrapper">
+        <div id="game-board-container">
+            <div class="grid-bg">
+                <div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div>
+                <div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div>
+                <div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div>
+                <div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div><div class="cell-bg"></div>
+            </div>
+            <div id="tiles-layer"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p id="ui-footer">Свайпай на экране или используй стрелки клавиатуры для объединения одинаковых мемов.</p>
+    </footer>
+</div>
+
+<!-- Модальное окно (вынесено из app для позиционирования поверх всего экрана) -->
+<div id="game-over-modal" class="modal-overlay">
+    <div class="modal-title" id="ui-game-over">Игра окончена!</div>
+    <div class="modal-score"><span id="ui-points">Очки: </span><span id="final-score">0</span></div>
+    <button class="btn" id="ui-restart" onclick="restartGame()">Играть снова</button>
+</div>
+
+<script>
+    // --- ЛОКАЛИЗАЦИЯ (Решение п. 2.14 требований) ---
+    const dict = {
+        'ru': {
+            title: "Эволюция Мемов: 2048",
+            subtitle: "Собери Дракона! 🐲",
+            score: "СЧЕТ",
+            best: "ЛУЧШИЙ",
+            footer: "Свайпай на экране или используй стрелки клавиатуры для объединения одинаковых мемов.",
+            gameOver: "Игра окончена!",
+            points: "Очки: ",
+            restart: "Играть снова"
+        },
+        'en': {
+            title: "Meme Evolution: 2048",
+            subtitle: "Merge the Dragon! 🐲",
+            score: "SCORE",
+            best: "BEST",
+            footer: "Swipe on the screen or use arrow keys to merge identical memes.",
+            gameOver: "Game Over!",
+            points: "Score: ",
+            restart: "Play Again"
+        }
+    };
+
+    let currentLang = 'ru'; // По умолчанию
+
+    function applyTranslations() {
+        const langData = dict[currentLang] || dict['ru'];
+        document.title = langData.title;
+        document.getElementById('ui-title').innerText = langData.title;
+        document.getElementById('ui-subtitle').innerText = langData.subtitle;
+        document.getElementById('ui-score').innerText = langData.score;
+        document.getElementById('ui-best').innerText = langData.best;
+        document.getElementById('ui-footer').innerText = langData.footer;
+        document.getElementById('ui-game-over').innerText = langData.gameOver;
+        document.getElementById('ui-points').innerText = langData.points;
+        document.getElementById('ui-restart').innerText = langData.restart;
+        document.documentElement.lang = currentLang;
+    }
+
+    // --- КОНСТАНТЫ И НАСТРОЙКИ ---
+    const EMOJIS = ['🥚', '🐥', '🐔', '🐱', '🐶', '🦊', '🐻', '🦁', '🐯', '🦄', '🐲'];
+    const COLORS = [
+        '#eee4da', '#ede0c8', '#f2b179', '#f59563', '#f67c5f', 
+        '#f65e3b', '#edcf72', '#edcc61', '#edc850', '#edc53f', '#edc22e'
+    ];
+    
+    // --- СОСТОЯНИЕ ИГРЫ ---
+    let board = Array.from({length: 4}, () => Array(4).fill(null));
+    let tiles = []; 
+    let tileIdCounter = 0;
+    let score = 0;
+    let bestScore = parseInt(localStorage.getItem('meme2048_best')) || 0;
+    let isGameOverState = false;
+    let isMoving = false;
+
+    // --- YANDEX SDK ИНТЕГРАЦИЯ ---
+    let ysdk = null;
+    let player = null;
+
+    function initYandex() {
+        if (typeof YaGames === 'undefined') {
+            setTimeout(initYandex, 100);
+            return;
+        }
+        
+        YaGames.init().then(_ysdk => {
+            ysdk = _ysdk;
+            
+            // Синхронизация и применение языка от платформы
+            if (ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang) {
+                let envLang = ysdk.environment.i18n.lang;
+                if(dict[envLang]) {
+                    currentLang = envLang;
+                } else {
+                    currentLang = 'en'; // Резервный английский для международных игроков
+                }
+                applyTranslations();
+            }
+
+            if (ysdk.features && ysdk.features.LoadingAPI) {
+                ysdk.features.LoadingAPI.ready();
+            }
+
+            return ysdk.getPlayer();
+        }).then(_player => {
+            player = _player;
+            return player.getData();
+        }).then(data => {
+            if (data && data.bestScore) {
+                if (data.bestScore > bestScore) {
+                    bestScore = data.bestScore;
+                    updateScoreDOM();
+                }
+            }
+        }).catch(err => {
+            console.warn("Yandex SDK работает в автономном режиме");
+            applyTranslations(); // Применяем дефолтный язык в автономе
+        });
+    }
+    
+    initYandex();
+
+    // --- ЗВУКОВАЯ СИСТЕМА ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    let isMuted = false;
+
+    function playPopSound(level = 1) {
+        if (isMuted || audioCtx.state === 'suspended') return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            // Динамический звук: чем выше уровень, тем интереснее и звонче звук
+            let baseFreq = 200 + (level * 30);
+            let endFreq = baseFreq * 2;
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + 0.1);
+            
+            // Громкость
+            gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } catch (e) {
+            console.warn("Audio error", e);
+        }
+    }
+
+    const resumeAudio = () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        document.removeEventListener('pointerdown', resumeAudio);
+        document.removeEventListener('keydown', resumeAudio);
+    };
+    document.addEventListener('pointerdown', resumeAudio);
+    document.addEventListener('keydown', resumeAudio);
+
+    // --- ЛОГИКА ИГРЫ И DOM ---
+    function initGame() {
+        applyTranslations();
+        updateScoreDOM();
+        spawnTile();
+        spawnTile();
+    }
+
+    function getTilePositionPercent(x, y) {
+        const step = 24.5;
+        const start = 2.5; 
+        return {
+            left: `${start + x * step}%`,
+            top: `${start + y * step}%`
+        };
+    }
+
+    function spawnTile() {
+        let emptyCells = [];
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                if (!board[y][x]) emptyCells.push({x, y});
+            }
+        }
+        if (emptyCells.length === 0) return;
+
+        let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        let level = Math.random() < 0.9 ? 1 : 2; 
+        
+        createTileDOM(randomCell.x, randomCell.y, level);
+    }
+
+    function createTileDOM(x, y, level) {
+        const id = tileIdCounter++;
+        const el = document.createElement('div');
+        el.className = 'tile tile-new';
+        el.id = `tile-${id}`;
+        
+        applyTileStyle(el, level);
+        
+        const pos = getTilePositionPercent(x, y);
+        el.style.left = pos.left;
+        el.style.top = pos.top;
+
+        document.getElementById('tiles-layer').appendChild(el);
+
+        const tile = { id, x, y, level, el };
+        tiles.push(tile);
+        board[y][x] = tile;
+
+        setTimeout(() => el.classList.remove('tile-new'), 250);
+    }
+
+    function applyTileStyle(el, level) {
+        const index = Math.min(level - 1, EMOJIS.length - 1);
+        el.innerText = EMOJIS[index];
+        el.style.backgroundColor = COLORS[Math.min(level - 1, COLORS.length - 1)];
+        
+        // Эпические мемы получают анимацию "дыхания" и свечение
+        if (level >= 7) {
+            el.classList.add('tile-epic');
+        } else {
+            el.classList.remove('tile-epic');
+        }
+    }
+
+    function spawnFloatingScore(x, y, points) {
+        const el = document.createElement('div');
+        el.className = 'floating-score';
+        el.innerText = `+${points}`;
+        
+        const pos = getTilePositionPercent(x, y);
+        el.style.left = pos.left;
+        el.style.top = pos.top;
+        
+        document.getElementById('tiles-layer').appendChild(el);
+        
+        // Удаляем после завершения анимации
+        setTimeout(() => el.remove(), 800);
+    }
+
+    function updateScoreDOM() {
+        document.getElementById('current-score').innerText = score;
+        document.getElementById('best-score').innerText = bestScore;
+    }
+
+    function addScore(points) {
+        score += points;
+        if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem('meme2048_best', bestScore);
+            if (player) {
+                player.setData({ bestScore: bestScore }).catch(() => {});
+            }
+        }
+        updateScoreDOM();
+    }
+
+    // --- ОСНОВНОЙ АЛГОРИТМ 2048 ---
+    function move(dir) {
+        if (isGameOverState || isMoving) return;
+        
+        const vectors = { 0: {x: 0, y: -1}, 1: {x: 1, y: 0}, 2: {x: 0, y: 1}, 3: {x: -1, y: 0} };
+        const vec = vectors[dir];
+
+        let xs = [0, 1, 2, 3];
+        let ys = [0, 1, 2, 3];
+        if (vec.x === 1) xs.reverse();
+        if (vec.y === 1) ys.reverse();
+
+        let moved = false;
+        let mergedThisTurn = Array.from({length: 4}, () => Array(4).fill(false));
+
+        isMoving = true;
+
+        ys.forEach(y => {
+            xs.forEach(x => {
+                let tile = board[y][x];
+                if (tile) {
+                    let cx = x, cy = y, nx = cx + vec.x, ny = cy + vec.y;
+
+                    while (nx >= 0 && nx < 4 && ny >= 0 && ny < 4 && board[ny][nx] === null) {
+                        cx = nx; cy = ny; nx = cx + vec.x; ny = cy + vec.y;
+                    }
+
+                    let targetTile = (nx >= 0 && nx < 4 && ny >= 0 && ny < 4) ? board[ny][nx] : null;
+
+                    if (targetTile && targetTile.level === tile.level && !mergedThisTurn[ny][nx]) {
+                        board[y][x] = null;
+                        board[ny][nx] = targetTile; 
+                        mergedThisTurn[ny][nx] = true;
+
+                        tile.x = nx; tile.y = ny;
+                        const pos = getTilePositionPercent(nx, ny);
+                        tile.el.style.left = pos.left;
+                        tile.el.style.top = pos.top;
+                        tile.el.style.zIndex = "5"; 
+
+                        setTimeout(() => {
+                            tile.el.remove();
+                            tiles = tiles.filter(t => t.id !== tile.id);
+                            
+                            targetTile.level++;
+                            const pointsEarned = Math.pow(2, targetTile.level);
+                            addScore(pointsEarned);
+                            applyTileStyle(targetTile.el, targetTile.level);
+                            
+                            // Запускаем эффект очков
+                            spawnFloatingScore(nx, ny, pointsEarned);
+                            
+                            targetTile.el.classList.remove('tile-merged');
+                            void targetTile.el.offsetWidth; 
+                            targetTile.el.classList.add('tile-merged');
+                            
+                            playPopSound(targetTile.level); // Звук зависит от уровня
+                        }, 150);
+                        moved = true;
+                    } 
+                    else if (cx !== x || cy !== y) {
+                        board[y][x] = null;
+                        board[cy][cx] = tile;
+                        tile.x = cx; tile.y = cy;
+                        
+                        const pos = getTilePositionPercent(cx, cy);
+                        tile.el.style.left = pos.left;
+                        tile.el.style.top = pos.top;
+                        
+                        moved = true;
+                    }
+                }
+            });
+        });
+
+        if (moved) {
+            setTimeout(() => {
+                spawnTile();
+                isMoving = false;
+                checkGameOver();
+            }, 160);
+        } else {
+            isMoving = false;
+            // Анимация ошибки (вздрагивание), если ход не привел к изменениям
+            const boardContainerEl = document.getElementById('game-board-container');
+            boardContainerEl.classList.remove('shake');
+            void boardContainerEl.offsetWidth; // Trigger reflow
+            boardContainerEl.classList.add('shake');
+            setTimeout(() => boardContainerEl.classList.remove('shake'), 300);
+        }
+    }
+
+    function checkGameOver() {
+        if (tiles.length < 16) return;
+
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                let lvl = board[y][x].level;
+                if (x < 3 && board[y][x+1] && board[y][x+1].level === lvl) return;
+                if (y < 3 && board[y+1][x] && board[y+1][x].level === lvl) return;
+            }
+        }
+
+        isGameOverState = true;
+        showInterstitialAdAndResults();
+    }
+
+    function showInterstitialAdAndResults() {
+        isMuted = true;
+        if (ysdk && ysdk.adv) {
+            ysdk.adv.showFullscreenAdv({
+                callbacks: {
+                    onClose: function(wasShown) { isMuted = false; showGameOverScreen(); },
+                    onError: function(error) { isMuted = false; showGameOverScreen(); }
+                }
+            });
+        } else {
+            isMuted = false;
+            showGameOverScreen();
+        }
+    }
+
+    function showGameOverScreen() {
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('game-over-modal').classList.add('active');
+    }
+
+    function restartGame() {
+        tiles.forEach(t => t.el.remove());
+        tiles = [];
+        board = Array.from({length: 4}, () => Array(4).fill(null));
+        score = 0;
+        isGameOverState = false;
+        
+        document.getElementById('game-over-modal').classList.remove('active');
+        initGame();
+    }
+
+    // --- УПРАВЛЕНИЕ ---
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); move(0); }
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); move(1); }
+        else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); move(2); }
+        else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); move(3); }
+    }, {passive: false});
+
+    let touchStartX = 0, touchStartY = 0;
+    const boardContainer = document.getElementById('game-board-container');
+
+    boardContainer.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+    boardContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    boardContainer.addEventListener('touchend', (e) => {
+        if (isGameOverState) return;
+        let dx = e.changedTouches[0].screenX - touchStartX;
+        let dy = e.changedTouches[0].screenY - touchStartY;
+        
+        if (Math.max(Math.abs(dx), Math.abs(dy)) > 30) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0) move(1); else move(3);
+            } else {
+                if (dy > 0) move(2); else move(0);
+            }
+        }
+    }, { passive: true });
+
+    document.addEventListener("DOMContentLoaded", () => { initGame(); });
+</script>
+</body>
+</html>
