@@ -13,6 +13,7 @@
 
     <style>
         :root {
+            /* DARK THEME (default) */
             --bg1: #080818;
             --bg2: #0d0d2b;
             --board-bg: rgba(255,255,255,0.04);
@@ -25,12 +26,51 @@
             --gold: #fbbf24;
             --combo: #34d399;
             --modal-bg: rgba(5,5,18,0.93);
+            --modal-card-bg: rgba(255,255,255,0.05);
+            --modal-card-border: rgba(255,255,255,0.1);
+            --score-box-bg: rgba(255,255,255,0.055);
+            --score-box-border: rgba(255,255,255,0.09);
+            --score-box-shine: rgba(192,132,252,0.4);
+            --undo-bg: rgba(255,255,255,0.055);
+            --undo-border: rgba(255,255,255,0.09);
+            --prog-track: rgba(255,255,255,0.06);
+            --sitem-bg: rgba(255,255,255,0.05);
             --btn-grad: linear-gradient(135deg,#7c3aed,#a855f7);
             --btn-shadow: rgba(124,58,237,0.45);
+            --stars-opacity: 1;
             --spacing: 2.2%;
             --cell-size: 22%;
             --font-d: 'Fredoka One', cursive;
             --font-b: 'Nunito', sans-serif;
+        }
+        /* LIGHT THEME - adapts to device */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg1: #ede9ff;
+                --bg2: #e2dbff;
+                --board-bg: rgba(255,255,255,0.6);
+                --board-border: rgba(130,80,230,0.15);
+                --cell-bg: rgba(160,120,240,0.1);
+                --text: #2d1b69;
+                --text-dim: rgba(70,40,130,0.5);
+                --accent: #7c3aed;
+                --accent2: #db2777;
+                --gold: #d97706;
+                --combo: #059669;
+                --modal-bg: rgba(237,233,255,0.95);
+                --modal-card-bg: rgba(255,255,255,0.9);
+                --modal-card-border: rgba(130,80,230,0.18);
+                --score-box-bg: rgba(255,255,255,0.75);
+                --score-box-border: rgba(130,80,230,0.18);
+                --score-box-shine: rgba(124,58,237,0.3);
+                --undo-bg: rgba(255,255,255,0.75);
+                --undo-border: rgba(130,80,230,0.18);
+                --prog-track: rgba(130,80,230,0.1);
+                --sitem-bg: rgba(130,80,230,0.07);
+                --btn-grad: linear-gradient(135deg,#6d28d9,#9333ea);
+                --btn-shadow: rgba(109,40,217,0.3);
+                --stars-opacity: 0.3;
+            }
         }
         * { box-sizing:border-box; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
 
@@ -41,11 +81,20 @@
             display:flex; justify-content:center; align-items:center;
             overflow:hidden; position:fixed;
             top:0;left:0;right:0;bottom:0; touch-action:none;
+            transition: background 0.4s ease;
+        }
+
+        /* Light theme body gets soft gradient */
+        @media (prefers-color-scheme: light) {
+            body,html {
+                background: linear-gradient(145deg, #ede9ff, #ddd6fe, #fce7f3);
+            }
         }
 
         #stars-canvas {
             position:fixed; top:0;left:0; width:100%;height:100%;
             pointer-events:none; z-index:0;
+            opacity: var(--stars-opacity, 1);
         }
 
         #app {
@@ -77,22 +126,22 @@
         }
         .scores-container { display:flex; gap:6px; align-items:center; flex-shrink:0; }
         .score-box {
-            background:rgba(255,255,255,0.055);
-            border:1px solid rgba(255,255,255,0.09);
-            backdrop-filter:blur(10px);
+            background:var(--score-box-bg);
+            border:1px solid var(--score-box-border);
+            backdrop-filter:blur(12px);
             padding:4px 10px; border-radius:11px;
             display:flex; flex-direction:column; align-items:center;
             min-width:62px; position:relative; overflow:hidden;
         }
         .score-box::before {
             content:''; position:absolute; top:0;left:0;right:0; height:1px;
-            background:linear-gradient(90deg,transparent,rgba(192,132,252,0.4),transparent);
+            background:linear-gradient(90deg,transparent,var(--score-box-shine),transparent);
         }
         .score-label { font-size:0.58rem; text-transform:uppercase; color:var(--accent); font-weight:800; letter-spacing:0.9px; }
-        .score-value { font-family:var(--font-d); font-size:1.15rem; color:#fff; line-height:1.15; }
+        .score-value { font-family:var(--font-d); font-size:1.15rem; color:var(--text); line-height:1.15; }
 
         #btn-undo {
-            background:rgba(255,255,255,0.055); border:1px solid rgba(255,255,255,0.09);
+            background:var(--undo-bg); border:1px solid var(--undo-border);
             color:var(--text-dim); font-size:1rem;
             width:34px; height:34px; border-radius:10px;
             cursor:pointer; display:flex; align-items:center; justify-content:center;
@@ -103,7 +152,7 @@
 
         /* PROGRESS */
         .prog-wrap {
-            height:3px; background:rgba(255,255,255,0.06);
+            height:3px; background:var(--prog-track);
             border-radius:99px; margin-bottom:max(5px,0.9vh);
             flex-shrink:0; overflow:hidden;
             animation:stag 0.5s 0.12s ease both;
@@ -131,13 +180,18 @@
             aspect-ratio:1/1;
             padding:var(--spacing);
             touch-action:none;
-            box-shadow:0 0 0 1px rgba(255,255,255,0.04), 0 24px 64px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07);
+            box-shadow:0 0 0 1px rgba(255,255,255,0.04), 0 20px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
             flex-shrink:0;
+        }
+        @media (prefers-color-scheme: light) {
+            #game-board-container {
+                box-shadow:0 0 0 1px rgba(130,80,230,0.1), 0 16px 40px rgba(100,60,200,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+            }
         }
         #game-board-container.pulse { animation:bpulse 0.45s ease-out; }
         @keyframes bpulse {
-            0%,100% { box-shadow:0 0 0 1px rgba(255,255,255,0.04),0 24px 64px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.07); }
-            50% { box-shadow:0 0 0 1px rgba(192,132,252,0.25),0 24px 64px rgba(0,0,0,0.65),0 0 35px rgba(192,132,252,0.12),inset 0 1px 0 rgba(255,255,255,0.07); }
+            0%,100% { box-shadow:0 0 0 1px rgba(255,255,255,0.04),0 20px 50px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.08); }
+            50% { box-shadow:0 0 0 1px rgba(192,132,252,0.3),0 20px 50px rgba(0,0,0,0.25),0 0 40px rgba(192,132,252,0.15),inset 0 1px 0 rgba(255,255,255,0.08); }
         }
         @keyframes shake {
             0%,100%{transform:translateX(0)rotate(0)}
@@ -150,7 +204,7 @@
             display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr);
             gap:2.4%; width:100%; height:100%;
         }
-        .cell-bg { background:var(--cell-bg); border-radius:11px; border:1px solid rgba(255,255,255,0.03); }
+        .cell-bg { background:var(--cell-bg); border-radius:11px; border:1px solid rgba(128,80,230,0.06); }
 
         #tiles-layer { position:absolute; top:0;left:0; width:100%;height:100%; pointer-events:none; }
 
@@ -196,7 +250,7 @@
         /* FLOATING SCORE */
         .fscore {
             position:absolute; font-family:var(--font-d); font-size:1.5rem;
-            color:#fff; text-shadow:0 0 12px var(--accent),0 2px 0 rgba(0,0,0,0.4);
+            color:var(--text); text-shadow:0 0 12px var(--accent),0 2px 0 rgba(0,0,0,0.15);
             pointer-events:none; z-index:50;
             animation:fup 0.9s cubic-bezier(.25,.46,.45,.94) forwards;
             display:flex; justify-content:center; align-items:center;
@@ -243,11 +297,12 @@
             to{opacity:1;transform:scale(1)}
         }
         .modal-card {
-            background:rgba(255,255,255,0.05);
-            border:1px solid rgba(255,255,255,0.1);
+            background:var(--modal-card-bg);
+            border:1px solid var(--modal-card-border);
             border-radius:24px; padding:32px 36px;
             text-align:center; max-width:310px; width:88%;
-            box-shadow:0 0 60px rgba(192,132,252,0.12),0 0 0 1px rgba(255,255,255,0.05);
+            box-shadow:0 0 60px rgba(192,132,252,0.1),0 0 0 1px rgba(128,80,230,0.07);
+            backdrop-filter:blur(12px);
         }
         .modal-emoji { font-size:3.8rem; margin-bottom:10px; display:block; }
         .modal-title {
@@ -262,7 +317,7 @@
         .modal-score { font-size:1.15rem; font-weight:800; color:var(--gold); margin-bottom:4px; }
         .modal-sub { font-size:0.8rem; color:var(--text-dim); margin-bottom:0; }
         .modal-stats { display:flex; gap:10px; justify-content:center; margin:14px 0 22px; }
-        .sitem { background:rgba(255,255,255,0.05); border-radius:11px; padding:7px 12px; text-align:center; }
+        .sitem { background:var(--sitem-bg); border-radius:11px; padding:7px 12px; text-align:center; border:1px solid rgba(128,80,230,0.08); }
         .snum { font-family:var(--font-d); font-size:1.25rem; color:var(--accent); }
         .slbl { font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
         .btn {
@@ -435,7 +490,9 @@ function _t(id, txt) { const el = document.getElementById(id); if(el) el.innerTe
 // TILE VISUALS
 // ══════════════════════════════════════
 const EMOJIS = ['🥚','🐥','🐔','🐱','🐶','🦊','🐻','🦁','🐯','🦄','🐲'];
-const THEMES = [
+
+// Dark tile themes
+const THEMES_DARK = [
     {bg:'linear-gradient(145deg,#1e1b4b,#312e81)',glow:'rgba(99,102,241,0.55)',border:'rgba(99,102,241,0.3)'},
     {bg:'linear-gradient(145deg,#0c3152,#1565c0)',glow:'rgba(21,101,192,0.55)',border:'rgba(21,101,192,0.3)'},
     {bg:'linear-gradient(145deg,#0f4c3a,#00897b)',glow:'rgba(0,137,123,0.55)',border:'rgba(0,137,123,0.3)'},
@@ -448,6 +505,29 @@ const THEMES = [
     {bg:'linear-gradient(145deg,#7b2c00,#ffa000)',glow:'rgba(255,160,0,0.75)',border:'rgba(255,160,0,0.5)'},
     {bg:'linear-gradient(145deg,#3a0066,#f472b6,#fbbf24)',glow:'rgba(255,200,80,0.9)',border:'rgba(255,200,80,0.65)'},
 ];
+
+// Light tile themes — bright, vivid with soft shadows
+const THEMES_LIGHT = [
+    {bg:'linear-gradient(145deg,#c7d2fe,#818cf8)',glow:'rgba(99,102,241,0.3)',border:'rgba(99,102,241,0.25)'},
+    {bg:'linear-gradient(145deg,#bfdbfe,#3b82f6)',glow:'rgba(59,130,246,0.3)',border:'rgba(59,130,246,0.25)'},
+    {bg:'linear-gradient(145deg,#99f6e4,#14b8a6)',glow:'rgba(20,184,166,0.3)',border:'rgba(20,184,166,0.25)'},
+    {bg:'linear-gradient(145deg,#bbf7d0,#22c55e)',glow:'rgba(34,197,94,0.3)',border:'rgba(34,197,94,0.25)'},
+    {bg:'linear-gradient(145deg,#fed7aa,#f97316)',glow:'rgba(249,115,22,0.35)',border:'rgba(249,115,22,0.25)'},
+    {bg:'linear-gradient(145deg,#fecdd3,#f43f5e)',glow:'rgba(244,63,94,0.35)',border:'rgba(244,63,94,0.25)'},
+    {bg:'linear-gradient(145deg,#e9d5ff,#a855f7)',glow:'rgba(168,85,247,0.35)',border:'rgba(168,85,247,0.3)'},
+    {bg:'linear-gradient(145deg,#ddd6fe,#7c3aed)',glow:'rgba(124,58,237,0.4)',border:'rgba(124,58,237,0.3)'},
+    {bg:'linear-gradient(145deg,#fce7f3,#ec4899)',glow:'rgba(236,72,153,0.4)',border:'rgba(236,72,153,0.3)'},
+    {bg:'linear-gradient(145deg,#fef3c7,#f59e0b)',glow:'rgba(245,158,11,0.45)',border:'rgba(245,158,11,0.35)'},
+    {bg:'linear-gradient(145deg,#fde68a,#f472b6,#a78bfa)',glow:'rgba(200,150,255,0.5)',border:'rgba(200,150,255,0.4)'},
+];
+
+function isLightMode() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+}
+
+function getThemes() {
+    return isLightMode() ? THEMES_LIGHT : THEMES_DARK;
+}
 
 // ══════════════════════════════════════
 // STARFIELD
@@ -638,11 +718,14 @@ function createTile(x, y, level, fid=null) {
 }
 
 function styleT(el, level) {
-    const i = Math.min(level-1, THEMES.length-1);
-    const T = THEMES[i];
+    const i = Math.min(level-1, THEMES_DARK.length-1);
+    const T = getThemes()[i];
+    const light = isLightMode();
     el.innerText = EMOJIS[Math.min(level-1, EMOJIS.length-1)];
     el.style.background = T.bg;
-    el.style.boxShadow = `0 4px 0 rgba(0,0,0,0.35), 0 0 22px ${T.glow}, inset 0 1px 0 rgba(255,255,255,0.14)`;
+    el.style.boxShadow = light
+        ? `0 3px 0 rgba(0,0,0,0.12), 0 0 16px ${T.glow}, inset 0 1px 0 rgba(255,255,255,0.7)`
+        : `0 4px 0 rgba(0,0,0,0.35), 0 0 22px ${T.glow}, inset 0 1px 0 rgba(255,255,255,0.14)`;
     el.style.border = `1px solid ${T.border}`;
     if (level>=7) el.classList.add('tile-epic'); else el.classList.remove('tile-epic');
 }
@@ -873,6 +956,13 @@ window.addEventListener('resize', fixLandscape);
 fixLandscape();
 
 document.addEventListener('DOMContentLoaded', ()=>{ initGame(); });
+
+// Live theme switch — redraw all tiles instantly when OS theme changes
+if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+        tiles.forEach(t => styleT(t.el, t.level));
+    });
+}
 </script>
 </body>
 </html>
